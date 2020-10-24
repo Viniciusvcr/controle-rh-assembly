@@ -231,14 +231,18 @@ aloca_reg:
 
 aloca_primeiro:
     call aloca_reg
+    movl %eax, %edi
+    movl $NULL, %ebx
+    movl %ebx, 261(%edi)
     movl %eax, list_header
 
     jmp inserir
     
 aloca_final:
     call aloca_reg
-    movl list_header, %edi
-    movl %eax, 261(%edi)
+    movl list_header, %ebx
+    movl %ebx, 261(%eax)
+    movl %eax, list_header
 
     jmp inserir
 
@@ -500,7 +504,7 @@ inserir:
     addl $4, %esp
     popl %edi
 
-    addl $4, %edi
-    movl $NULL, (%edi)
+    // addl $4, %edi
+    // movl $NULL, (%edi)
 
     ret
