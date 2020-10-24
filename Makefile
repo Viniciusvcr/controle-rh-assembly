@@ -1,6 +1,6 @@
 all:
 	as --32 controle-rh.s -o controle-rh.o
-	ld -m elf_i386 -l c -dynamic-linker /lib/ld-linux.so.2 controle-rh.o -o controle-rh
+	ld -m elf_i386 -l c -dynamic-linker /lib/ld-linux.so.2 controle-rh.o -o controle-rh.out
 
 clean:
-	rm -rf *.o controle-rh
+	rm -rf *.o *.out
