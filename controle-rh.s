@@ -137,9 +137,12 @@ relatorio_regs:
     movl $list_header, %edi # move a cabeça da lista para o registrador %edi
     movl $NULL, %ebx
 
-    loop_relat:    
+    loop_relat:
+    pushl $loop_relat # Empilha o endereço de retorno a ser utilizado por call_mostra_registro
     cmpl (%edi), %ebx
-    jne mostra_registro
+    jne call_mostra_registro
+
+    addl $4, %esp # Remove o pushl $loop_relat que sobrou
 
     ret
 
@@ -216,6 +219,13 @@ call_relatorio:
     addl $4, %esp
 
     jmp menu_loop
+
+# Função para chamar o procedimento mostra_registro
+# A função que usou jump para cá deve ter empilhado o endereço de retorno
+call_mostra_registro:
+    call mostra_registro
+    
+    ret
 
 ######################### Procedimentos de auxiliares #########################
 # Estes procedimentos são usados por outros procedimentos/funções para realizarem suas tarefas
@@ -362,7 +372,7 @@ mostra_registro:
     call printf
     addl $4, %esp
 
-    jmp loop_relat
+    ret
 
 # Procedimento para ler um registro completo
 le_registro:
