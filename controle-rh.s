@@ -229,6 +229,8 @@ aloca_reg:
     
     ret
 
+# Aloca um registro quando a lista está vazia
+# Esta função altera os registradores %edi, %eax e %ebx
 aloca_primeiro:
     call aloca_reg
     movl %eax, %edi
@@ -236,16 +238,20 @@ aloca_primeiro:
     movl %ebx, 261(%edi)
     movl %eax, list_header
 
-    jmp inserir
-    
+    jmp le_registro
+
+# Aloca um registro quando a lista não está vazia, orientando os ponteiros
+# Esta função altera os registradores %eax e %ebx
 aloca_final:
     call aloca_reg
     movl list_header, %ebx
     movl %ebx, 261(%eax)
     movl %eax, list_header
 
-    jmp inserir
+    jmp le_registro
 
+# Procedimento para mostrar um registro inteiro
+# Requer que o endereço do registro a ser mostrado esteja em %edi
 mostra_registro:
     movl (%edi), %edi
 
@@ -358,7 +364,8 @@ mostra_registro:
 
     jmp loop_relat
 
-inserir:
+# Procedimento para ler um registro completo
+le_registro:
     pushl %eax
     pushl $pede_nome
     call printf
@@ -503,8 +510,5 @@ inserir:
     call scanf
     addl $4, %esp
     popl %edi
-
-    // addl $4, %edi
-    // movl $NULL, (%edi)
 
     ret
