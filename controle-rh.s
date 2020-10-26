@@ -72,6 +72,7 @@
 
     scan_int: .asciz "%d"
     scan_char: .asciz "%c"
+    str_fmt: .asciz "%s\n"
     address_form: .asciz "%X\n"
     quebra_linha: .asciz "\n"
 
@@ -80,6 +81,15 @@
     list_header: .int 0
     tam_reg:     .int 265
     reg_prox:    .int 261
+
+    nome_novo: .int 0
+
+    reg_atual: .int 0
+    prox_atual: .int 0
+    reg_novo: .int 0
+    prox_novo: .int 0
+    anterior: .int 0
+
 
 .section .text
 
@@ -110,10 +120,18 @@ inserir_funcionario:
     call printf
     addl $4, %esp
 
+    pushl $pede_nome
+    call printf
+    addl $4, %esp
+    pushl $nome_novo
+    call gets
+    call gets
+    addl $4, %esp
+
     movl $NULL, %eax;
     cmpl %eax, list_header # Verifica se a lista é vazia
     je aloca_primeiro # se a lista for vazia, aloca o primeiro
-    jne aloca_final # se a lista não for vazia, aloca e faz as operações de inserção no início
+    jne aloca_ordenado # se a lista não for vazia, aloca e faz as operações de inserção no início
 
     # aloca_primeiro e aloca_final pulam para o procedimento auxiliar "insere" que contém o ret
 
@@ -243,22 +261,59 @@ aloca_reg:
 # Esta função altera os registradores %edi, %eax e %ebx
 aloca_primeiro:
     call aloca_reg
-    movl %eax, %edi
     movl $NULL, %ebx
-    movl %ebx, 261(%edi)
+    movl %ebx, 261(%eax)
     movl %eax, list_header
 
     jmp le_registro
 
 # Aloca um registro quando a lista não está vazia, orientando os ponteiros
 # Esta função altera os registradores %eax e %ebx
-aloca_final:
-    call aloca_reg
+aloca_ordenado: # FIXME ao inserir em ordem
+    # %ebx = atual
+    # %ecx = anterior
     movl list_header, %ebx
-    movl %ebx, 261(%eax)
-    movl %eax, list_header
+    movl list_header, %ecx
 
-    jmp le_registro
+    loop_aloca_ordenado:
+        cmpl $NULL, %ebx
+        je inserir
+
+        pushl %ebx
+        pushl $nome_novo
+        call strcmp
+        addl $4, %esp
+        popl %ebx
+        cmpl $0, %eax
+        jle inserir
+
+        movl %ebx, %ecx
+        movl 261(%ebx), %ebx
+        jmp loop_aloca_ordenado    
+
+    inserir:
+        pushl %ecx
+        pushl %ebx
+        call aloca_reg
+        popl %ebx
+        popl %ecx
+        
+        movl list_header, %edi
+        movl 261(%edi), %edi
+        cmpl $NULL, %edi
+        je insere_primeiro
+
+        insere:
+            movl %ebx, 261(%eax)
+            movl %eax, 261(%ecx)
+
+            jmp le_registro
+
+        insere_primeiro:
+            movl %ebx, 261(%eax) # novo.prox = atual
+            movl %eax, list_header # head = novo
+
+            jmp le_registro
 
 # Procedimento para mostrar um registro inteiro
 # Requer que o endereço do registro a ser mostrado esteja em %edi
@@ -376,17 +431,14 @@ mostra_registro:
 
 # Procedimento para ler um registro completo
 le_registro:
-    pushl %eax
-    pushl $pede_nome
-    call printf
-    addl $4, %esp
-    popl %eax
     movl %eax, %edi # Faz %edi apontar para o novo registro
-    pushl %edi
-    call gets
-    call gets
-    popl %edi
     
+    pushl $nome_novo
+    pushl %edi
+    call strcpy
+    popl %edi
+    addl $4, %esp
+
     addl $31, %edi # Avança ao próximo campo
 
     pushl $pede_rua
