@@ -26,7 +26,8 @@
     mens_consult:  .asciz "Consulta de funcionário:\n\n"
     mens_relat:    .asciz "Relatório de funcionários:\n\n"
     mens_invalido: .asciz "Opção inválida!\n\n"
-    mens_nao_encontrado: .asciz "\nNome não encontrado na lista!\n\n"
+    mens_nao_encontrado: .asciz "\n\nNome não encontrado na lista!\n\n"
+    mens_remocao_concluida: .asciz "\n\nRemoção do(a) funcionário(a) %s concluída com sucesso!\n\n"
     str_menu:      .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t0 - Sair do programa\n> "
     resp_menu:     .int 0
 
@@ -66,7 +67,7 @@
     mostra_salario:    .asciz "\tSALARIO      : %d\n"
 
     conclui_insercao: .asciz "\nNovo funcionário cadastrado com sucesso!\n\n"
-    fim_lista:        .asciz "Lista concluída!\n\n"
+    fim_reg:        .asciz "=================================================================\n\n"
 
     func_inserir:   .int 1
     func_remover:   .int 2
@@ -141,8 +142,60 @@ inserir_funcionario:
 
 remover_funcionario:
     pushl $mens_remover
-    call printf
-    addl $4, %esp
+    call printf # Escreve na tela a mensagem de abertura da função
+    pushl $pede_nome_remover 
+    call printf # Escreve na tela a mensagem de pedido do nome para consulta
+    addl $8, %esp # Remove as strings de mensagem da pilha
+   
+    pushl $nome_inserido # Empilha o endereço da variável para leitura do nome
+    call gets # Esvazia o buffer
+    call gets # Lê o nome de consulta
+    addl $4, %esp # Desempilha o endereço da variável para leitura do nome
+
+    movl list_header, %ebx # Move a cabeça da lista para %ebx
+    movl $NULL, %ecx # %ecx = registro anterior (NULL no início)
+
+    loop_remove:
+        cmpl $NULL, %ebx # Compara %ebx com $NULL (Verifica se está no fim)
+        je nao_encontrado
+
+        pushl %ecx
+        pushl %ebx # Empilha o registro atual (nome é primeiro campo do registro)
+        pushl $nome_inserido # Empilha o nome de consulta
+        call strcmp # Chama a função de comparação de strings
+        addl $4, %esp
+        popl %ebx
+        popl %ecx
+        cmpl $0, %eax # Compara o resultado de strcmp com 0
+        je remove # Desvia o fluxo para procedimento de remoção se a comparação der igual
+
+        movl %ebx, %ecx # Avança %ecx (que agora é o atual)
+        movl 261(%ebx), %ebx # Coloca o conteúdo do campo próx em %ebx
+        jmp loop_remove # Retorna ao começo do loop
+
+    remove:
+        cmpl $NULL, %ecx 
+        je remove_primeiro # Se o registro anterior for nulo, desvia para função de remover_primeiro
+
+        movl 261(%ebx), %edx # Move o atual.prox para %edx
+        movl %edx, 261(%ecx) # anterior.prox = atual.prox
+        jmp desaloca
+
+    remove_primeiro:
+        movl 261(%ebx), %edx
+        movl %edx, list_header # Redireciona a cabeça da lista para o próx do atual
+        jmp desaloca
+
+    desaloca: 
+        pushl %ebx # Empilha o endereço do atual
+        call free # Destrói o registro atual
+        addl $4, %esp
+        
+        pushl $nome_inserido
+        pushl $mens_remocao_concluida
+        call printf
+        addl $8, %esp
+
     ret
 
 consultar_funcionario:
@@ -165,12 +218,12 @@ consultar_funcionario:
         cmpl (%edi), %ebx # Compara o conteúdo de %edi com $NULL
         je nao_encontrado # Se (%edi) == $NULL, fim de lista, nome não encontrado
 
-        pushl (%edi) # Empilha o nome do registro atual (nome é primeiro campo do registro)
+        pushl (%edi) # Empilha o registro atual (nome é primeiro campo do registro)
         pushl $nome_inserido # Empilha o nome de consulta
         call strcmp # Chama a função de comparação de strings
         addl $8, %esp
         pushl $encerra_consulta # Empilha o endereço de retorno do procedimento call_mostra_registro
-        cmpl $0, %eax # Compara o resultado de strcasecmp com 0
+        cmpl $0, %eax # Compara o resultado de strcmp com 0
         je call_mostra_registro # Se forem iguais, desvia para call_mostra_registro
 
         addl $4, %esp # Remove o endereço de retorno ($encerra_consulta) caso a busca deva continuar
@@ -270,9 +323,6 @@ call_consultar:
 
 call_relatorio:
     call relatorio_regs
-    pushl $fim_lista
-    call printf
-    addl $4, %esp
 
     jmp menu_loop
 
@@ -461,11 +511,9 @@ mostra_registro:
     
     addl $4, %edi # Deixa %edi apontando para prox
 
-    pushl $quebra_linha
+    pushl $fim_reg
     call printf
     addl $4, %esp
-
-    jmp sair
 
     ret
 
