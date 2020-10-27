@@ -23,9 +23,10 @@
     mens_sair:     .asciz "Saindo do programa... Obrigado por utilizar!\n"
     mens_inserir:  .asciz "Inserir funcionário:\n\n"
     mens_remover:  .asciz "Remover funcionário:\n\n"
-    mens_consult:  .asciz "Consultar funcionário:\n\n"
+    mens_consult:  .asciz "Consulta de funcionário:\n\n"
     mens_relat:    .asciz "Relatório de funcionários:\n\n"
     mens_invalido: .asciz "Opção inválida!\n\n"
+    mens_nao_encontrado: .asciz "\nNome não encontrado na lista!\n\n"
     str_menu:      .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t0 - Sair do programa\n> "
     resp_menu:     .int 0
 
@@ -44,6 +45,9 @@
     pede_data_contr: .asciz "Insira a DATA DE CONTRATO do funcionário: "
     pede_cargo:      .asciz "Insira o CARGO do funcionário: "
     pede_salario:    .asciz "Insira o SALÁRIO do funcionário: "
+
+    pede_nome_remover: .asciz "Insira o NOME do funcionário que deseja REMOVER: "
+    pede_nome_consult: .asciz "Insira o NOME do funcionário que deseja CONSULTAR: "
 
     mostra_nome:       .asciz "FUNCIONÁRIO %s: \n"
     mostra_rua:        .asciz "\tRUA          : %s\n"
@@ -82,7 +86,7 @@
     tam_reg:     .int 265
     reg_prox:    .int 261
 
-    nome_novo: .int 0
+    nome_inserido: .int 0
 
     reg_atual: .int 0
     prox_atual: .int 0
@@ -123,7 +127,7 @@ inserir_funcionario:
     pushl $pede_nome
     call printf
     addl $4, %esp
-    pushl $nome_novo
+    pushl $nome_inserido
     call gets
     call gets
     addl $4, %esp
@@ -143,9 +147,43 @@ remover_funcionario:
 
 consultar_funcionario:
     pushl $mens_consult
-    call printf
-    addl $4, %esp
-    ret
+    call printf # Escreve na tela a mensagem de abertura da função
+    pushl $pede_nome_consult 
+    call printf # Escreve na tela a mensagem de pedido do nome para consulta
+    addl $8, %esp # Remove as strings de mensagem da pilha
+
+    pushl $nome_inserido # Empilha o endereço da variável para leitura do nome
+    call gets # Esvazia o buffer
+    call gets # Lê o nome de consulta
+    addl $4, %esp # Desempilha o endereço da variável para leitura do nome
+
+    movl $list_header, %edi # Move o endereço da cabeça da lista para %edi
+    movl $NULL, %ebx # Move o endereço de NULL para %ebx
+    
+    # %edi = Endereço do registro atual
+    loop_consulta:
+        cmpl (%edi), %ebx # Compara o conteúdo de %edi com $NULL
+        je nao_encontrado # Se (%edi) == $NULL, fim de lista, nome não encontrado
+
+        pushl (%edi) # Empilha o nome do registro atual (nome é primeiro campo do registro)
+        pushl $nome_inserido # Empilha o nome de consulta
+        call strcmp # Chama a função de comparação de strings
+        addl $8, %esp
+        pushl $encerra_consulta # Empilha o endereço de retorno do procedimento call_mostra_registro
+        cmpl $0, %eax # Compara o resultado de strcasecmp com 0
+        je call_mostra_registro # Se forem iguais, desvia para call_mostra_registro
+
+        addl $4, %esp # Remove o endereço de retorno ($encerra_consulta) caso a busca deva continuar
+        movl (%edi), %edi # Move o conteúdo de %edi (o registro, de fato) para %edi
+        addl $261, %edi # Avança ao campo próx (o endereço de prox)
+        jmp loop_consulta # Retorna ao começo do loop
+
+    nao_encontrado: # Imprime uma mensagem caso o nome não seja encontrado na lista
+        pushl $mens_nao_encontrado
+        call printf
+        addl $4, %esp
+
+    encerra_consulta: ret
 
 relatorio_regs:
     pushl $mens_relat
@@ -281,7 +319,7 @@ aloca_ordenado:
 
         pushl %ecx
         pushl %ebx
-        pushl $nome_novo
+        pushl $nome_inserido
         call strcmp
         addl $4, %esp
         popl %ebx
@@ -427,13 +465,15 @@ mostra_registro:
     call printf
     addl $4, %esp
 
+    jmp sair
+
     ret
 
 # Procedimento para ler um registro completo
 le_registro:
     movl %eax, %edi # Faz %edi apontar para o novo registro
     
-    pushl $nome_novo
+    pushl $nome_inserido
     pushl %edi
     call strcpy
     popl %edi
