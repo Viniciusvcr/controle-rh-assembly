@@ -19,6 +19,7 @@
 # Total de bytes: 265 bytes
 
 .section .data
+    // TODO Arrumar tabs
     mens_abertura: .asciz "Bem vindo ao controle de RH\n\n"
     mens_sair:     .asciz "Saindo do programa... Obrigado por utilizar!\n"
     mens_inserir:  .asciz "Inserir funcionário:\n\n"
@@ -28,6 +29,7 @@
     mens_invalido: .asciz "Opção inválida!\n\n"
     mens_nao_encontrado: .asciz "\n\nNome não encontrado na lista!\n\n"
     mens_remocao_concluida: .asciz "\n\nRemoção do(a) funcionário(a) %s concluída com sucesso!\n\n"
+    mens_lista_vazia: .asciz "Não há funcionários cadastrados no sistema!\n\n"
     str_menu:      .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t0 - Sair do programa\n> "
     resp_menu:     .int 0
 
@@ -231,6 +233,7 @@ consultar_funcionario:
         addl $261, %edi # Avança ao campo próx (o endereço de prox)
         jmp loop_consulta # Retorna ao começo do loop
 
+    // TODO Separar função pois é usada em dois procedimentos diferentes
     nao_encontrado: # Imprime uma mensagem caso o nome não seja encontrado na lista
         pushl $mens_nao_encontrado
         call printf
@@ -246,14 +249,24 @@ relatorio_regs:
     movl $list_header, %edi # move a cabeça da lista para o registrador %edi
     movl $NULL, %ebx
 
-    loop_relat:
-    pushl $loop_relat # Empilha o endereço de retorno a ser utilizado por call_mostra_registro
     cmpl (%edi), %ebx
-    jne call_mostra_registro
+    je nao_ha_registros
 
-    addl $4, %esp # Remove o pushl $loop_relat que sobrou
+    loop_relat:
+        pushl $loop_relat # Empilha o endereço de retorno a ser utilizado por call_mostra_registro
+        cmpl (%edi), %ebx
+        jne call_mostra_registro
 
-    ret
+        addl $4, %esp # Remove o pushl $loop_relat que sobrou
+
+        ret
+
+    nao_ha_registros:
+        pushl $mens_lista_vazia
+        call printf
+        addl $4, %esp
+
+        ret
 
 sair:
     pushl $mens_sair
