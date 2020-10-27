@@ -40,7 +40,7 @@
     pede_data_nasc:  .asciz "Insira a DATA DE NASCIMENTO do funcionário: "
     pede_genero:     .asciz "Insira o gênero do funcionário (<M>asculino, <F>eminino): "
     pede_cpf:        .asciz "Insira o CPF do funcionário: "
-    pede_rg:         .asciz "Insirao RG do funcionário: "
+    pede_rg:         .asciz "Insira o RG do funcionário: "
     pede_data_contr: .asciz "Insira a DATA DE CONTRATO do funcionário: "
     pede_cargo:      .asciz "Insira o CARGO do funcionário: "
     pede_salario:    .asciz "Insira o SALÁRIO do funcionário: "
@@ -269,21 +269,23 @@ aloca_primeiro:
 
 # Aloca um registro quando a lista não está vazia, orientando os ponteiros
 # Esta função altera os registradores %eax e %ebx
-aloca_ordenado: # FIXME ao inserir em ordem
+aloca_ordenado:
     # %ebx = atual
     # %ecx = anterior
     movl list_header, %ebx
-    movl list_header, %ecx
+    movl $NULL, %ecx
 
     loop_aloca_ordenado:
         cmpl $NULL, %ebx
         je inserir
 
+        pushl %ecx
         pushl %ebx
         pushl $nome_novo
         call strcmp
         addl $4, %esp
         popl %ebx
+        popl %ecx
         cmpl $0, %eax
         jle inserir
 
@@ -297,10 +299,8 @@ aloca_ordenado: # FIXME ao inserir em ordem
         call aloca_reg
         popl %ebx
         popl %ecx
-        
-        movl list_header, %edi
-        movl 261(%edi), %edi
-        cmpl $NULL, %edi
+
+        cmpl $NULL, %ecx
         je insere_primeiro
 
         insere:
