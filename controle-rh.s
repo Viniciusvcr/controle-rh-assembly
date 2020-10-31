@@ -52,7 +52,7 @@
     pede_nome_consult: .asciz "Insira o NOME do funcionário que deseja CONSULTAR: "
 
     # Mensagens para escrita do registro na tela
-    mostra_nome:       .asciz "FUNCIONÁRIO %s: \n"
+    mostra_nome:       .asciz "FUNCIONÁRIO(A) %s: \n"
     mostra_rua:        .asciz "\tRUA          : %s\n"
     mostra_numero:     .asciz "\tNÚMERO       : %d\n"
     mostra_bairro:     .asciz "\tBAIRRO       : %s\n"
