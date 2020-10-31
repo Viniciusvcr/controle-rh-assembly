@@ -128,6 +128,7 @@ menu:
 
 # Função para inserir um funcionário nos registros
 # Altera os mesmos registradores que printf/scanf/fgets
+# TODO gets -> fgets
 inserir_funcionario:
     pushl $mens_inserir
     call printf # Escreve na tela a mensagem de abertura da função
@@ -148,6 +149,7 @@ inserir_funcionario:
 
     # aloca_primeiro e aloca_final pulam para o procedimento auxiliar "le_registro", que contém o ret
 
+# TODO gets -> fgets
 remover_funcionario:
     pushl $mens_remover
     call printf # Escreve na tela a mensagem de abertura da função
@@ -208,6 +210,7 @@ remover_funcionario:
 
     ret
 
+# TODO gets -> fgets
 consultar_funcionario:
     pushl $mens_consult
     call printf # Escreve na tela a mensagem de abertura da função
