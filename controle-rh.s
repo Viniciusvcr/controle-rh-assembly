@@ -94,16 +94,6 @@
     nome_inserido: .int 0
     resp_menu: .int 0
 
-    # Constantes de tamanho para fgets e avanços
-    tam_string_longa: .int 31
-    tam_cep_string:   .int 9
-    tam_tel_string:   .int 10
-    tam_data_string:  .int 11
-    tam_cpf_string:   .int 12
-    tam_rg_string:    .int 10
-    tam_int:          .int 4
-    tam_char:         .int 4
-
 .section .text
 
 .globl _start
@@ -128,7 +118,6 @@ menu:
 
 # Função para inserir um funcionário nos registros
 # Altera os mesmos registradores que printf/scanf/fgets
-# TODO gets -> fgets
 inserir_funcionario:
     pushl $mens_inserir
     call printf # Escreve na tela a mensagem de abertura da função
@@ -149,7 +138,6 @@ inserir_funcionario:
 
     # aloca_primeiro e aloca_final pulam para o procedimento auxiliar "le_registro", que contém o ret
 
-# TODO gets -> fgets
 remover_funcionario:
     pushl $mens_remover
     call printf # Escreve na tela a mensagem de abertura da função
@@ -210,7 +198,6 @@ remover_funcionario:
 
     ret
 
-# TODO gets -> fgets
 consultar_funcionario:
     pushl $mens_consult
     call printf # Escreve na tela a mensagem de abertura da função
@@ -559,8 +546,6 @@ mostra_registro:
 
 # Procedimento para ler um registro completo
 # Utiliza fgets para leitura de strings e scanf para leitura de inteiros e caracteres
-# TODO trocar gets por fgets
-# TODO utilizar constantes de tamanho para avançar %edi
 le_registro:
     movl %eax, %edi # Faz %edi apontar para o novo registro
     
