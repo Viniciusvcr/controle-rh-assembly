@@ -13,10 +13,10 @@
 #   RG        : string (10 bytes)
 #   data_contr: string (11 bytes)
 #   cargo     : string (31 bytes)
-#   salario   : int (4 bytes)
+#   salario   : double (8 bytes)
 #   prox      : int (4 bytes)
 #
-# Total de bytes: 265 bytes
+# Total de bytes: 269 bytes
 
 .section .data
     # Mensagens do sistema
@@ -66,7 +66,7 @@
     mostra_rg:         .asciz "\tRG           : %s\n"
     mostra_data_contr: .asciz "\tCONTRATADO EM: %s\n"
     mostra_cargo:      .asciz "\tCARGO        : %s\n"
-    mostra_salario:    .asciz "\tSALARIO      : %d\n"
+    mostra_salario:    .asciz "\tSALARIO      : R$ %.2lf\n"
 
     # Mensagens de conclusão (Inserção e consulta de registros)
     conclui_insercao: .asciz "\nNovo funcionário cadastrado com sucesso!\n\n"
@@ -81,6 +81,7 @@
 
     # Formatadores para scanf e printf
     int_fmt:      .asciz "%d"
+    double_fmt:   .asciz "%lf"
     char_fmt:     .asciz "%c"
 
     # Constante NULL
@@ -88,7 +89,7 @@
 
     # Variáveis da lista encadeada
     list_header: .int 0
-    tam_reg:     .int 265
+    tam_reg:     .int 269
 
     # Outras variáveis
     nome_inserido: .int 0
@@ -168,20 +169,20 @@ remover_funcionario:
         je remove # Desvia o fluxo para procedimento de remoção se a comparação der igual
 
         movl %ebx, %ecx # Avança %ecx (que agora é o atual)
-        movl 261(%ebx), %ebx # Coloca o conteúdo do campo próx em %ebx
+        movl 265(%ebx), %ebx # Coloca o conteúdo do campo próx em %ebx
         jmp loop_remove # Retorna ao começo do loop
 
     remove:
         cmpl $NULL, %ecx 
         je remove_primeiro # Se o registro anterior for nulo, desvia para função de remover_primeiro
 
-        movl 261(%ebx), %edx # Move o atual.prox para %edx
-        movl %edx, 261(%ecx) # anterior.prox = atual.prox
+        movl 265(%ebx), %edx # Move o atual.prox para %edx
+        movl %edx, 265(%ecx) # anterior.prox = atual.prox
         jmp desaloca # Desvia o fluxo para a desalocação do registro
 
     # Procedimento para remover o primeiro da lista
     remove_primeiro:
-        movl 261(%ebx), %edx # Move o endereço contido em atual.prox para %edx
+        movl 265(%ebx), %edx # Move o endereço contido em atual.prox para %edx
         movl %edx, list_header # Redireciona a cabeça da lista para o endereço contido em %edx (atual.prox)
         jmp desaloca # Desvia o fluxo para a desalocação do registro
 
@@ -228,7 +229,7 @@ consultar_funcionario:
 
         addl $4, %esp # Remove o endereço de retorno ($encerra_consulta) caso a busca deva continuar
         movl (%edi), %edi # Move o conteúdo de %edi (o registro, de fato) para %edi
-        addl $261, %edi # Avança ao campo próx (o endereço de prox)
+        addl $265, %edi # Avança ao campo próx (o endereço de prox)
         jmp loop_consulta # Retorna ao começo do loop
 
     encerra_consulta: ret
@@ -372,7 +373,7 @@ aloca_reg:
 aloca_primeiro:
     call aloca_reg
     movl $NULL, %ebx
-    movl %ebx, 261(%eax)
+    movl %ebx, 265(%eax)
     movl %eax, list_header
 
     jmp le_registro
@@ -402,7 +403,7 @@ aloca_ordenado:
 
         # Caso contrário, avance na lista
         movl %ebx, %ecx # Auxiliar de anterior recebe o endereço de atual
-        movl 261(%ebx), %ebx # Auxiliar de atual recebe o endereço do próx armazenado no registro
+        movl 265(%ebx), %ebx # Auxiliar de atual recebe o endereço do próx armazenado no registro
         jmp loop_aloca_ordenado # Retorna ao início do loop
 
     # Procedimento de inserção de aloca_ordenado
@@ -418,14 +419,14 @@ aloca_ordenado:
                            # Caso contrário, adequa os ponteiros da lista
 
         # Adequação dos ponteiros 
-        movl %ebx, 261(%eax) # novo.prox = atual
-        movl %eax, 261(%ecx) # anterior.prox = novo
+        movl %ebx, 265(%eax) # novo.prox = atual
+        movl %eax, 265(%ecx) # anterior.prox = novo
 
         jmp le_registro # Procede para a leitura dos demais campos do registro
 
         # Adequação dos ponteiros no caso de inserção no início
         insere_primeiro:
-            movl %ebx, 261(%eax) # novo.prox = atual
+            movl %ebx, 265(%eax) # novo.prox = atual
             movl %eax, list_header # cabeça da lista = novo
 
             jmp le_registro # Procede para a leitura dos demais campos do registro
@@ -531,12 +532,14 @@ mostra_registro:
     popl %edi
     addl $31, %edi
 
-    pushl (%edi)
+    fldl (%edi) # Carrega o conteúdo de %edi na PFU
+    subl $8, %esp # Abre espaço para o double na pilha do sistema
+    fstpl (%esp) # Carrega o double para a pilha do sistema
     pushl $mostra_salario
     call printf
-    addl $8, %esp
+    addl $12, %esp
     
-    addl $4, %edi # Deixa %edi apontando para prox
+    addl $8, %edi # Deixa %edi apontando para prox
 
     pushl $divisor_reg
     call printf # Imprime um divisor de registros após mostrá-lo
@@ -684,7 +687,7 @@ le_registro:
     call printf
     addl $4, %esp
     pushl %edi
-    pushl $int_fmt
+    pushl $double_fmt
     call scanf
     addl $4, %esp
     popl %edi
