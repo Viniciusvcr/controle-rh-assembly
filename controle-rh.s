@@ -26,11 +26,12 @@
     mens_remover:           .asciz "Remover funcionário:\n\n"
     mens_consult:           .asciz "Consulta de funcionário:\n\n"
     mens_relat:             .asciz "Relatório de funcionários:\n\n"
+    mens_reajuste:          .asciz "Reajuste salarial:\n\n"
     mens_invalido:          .asciz "Opção inválida!\n\n"
     mens_nao_encontrado:    .asciz "\n\nNome não encontrado na lista!\n\n"
     mens_remocao_concluida: .asciz "\n\nRemoção do(a) funcionário(a) %s concluída com sucesso!\n\n"
     mens_lista_vazia:       .asciz "Não há funcionários cadastrados no sistema!\n\n"
-    str_menu:               .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t0 - Sair do programa\n> "
+    str_menu:               .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t5 - Reajuste salarial\n\t0 - Sair do programa\n> "
 
     # Mensagens de pedidos ao usuário
     pede_nome:         .asciz "Insira o NOME do funcionário: "
@@ -50,6 +51,7 @@
     pede_salario:      .asciz "Insira o SALÁRIO do funcionário: "
     pede_nome_remover: .asciz "Insira o NOME do funcionário que deseja REMOVER: "
     pede_nome_consult: .asciz "Insira o NOME do funcionário que deseja CONSULTAR: "
+    pede_taxa_reajust: .asciz "Insira o TAXA de reajuste (entre 0 e 1): "
 
     # Mensagens para escrita do registro na tela
     mostra_nome:       .asciz "FUNCIONÁRIO(A) %s: \n"
@@ -68,6 +70,8 @@
     mostra_cargo:      .asciz "\tCARGO        : %s\n"
     mostra_salario:    .asciz "\tSALARIO      : R$ %.2lf\n"
 
+    mostra_total_reajuste: .asciz "O reajuste total foi de R$ %.2lf\n"
+
     # Mensagens de conclusão (Inserção e consulta de registros)
     conclui_insercao: .asciz "\nNovo funcionário cadastrado com sucesso!\n\n"
     divisor_reg:      .asciz "=================================================================\n\n"
@@ -77,6 +81,7 @@
     func_remover:   .int 2
     func_consultar: .int 3
     func_relatorio: .int 4
+    func_reajuste:  .int 5
     func_sair:      .int 0
 
     # Formatadores para scanf e printf
@@ -90,6 +95,12 @@
     # Variáveis da lista encadeada
     list_header: .int 0
     tam_reg:     .int 269
+
+    p_reajuste: .double 0
+    double_one: .double 1
+
+    total_salario:  .double 0
+    total_reajuste: .double 0
 
     # Outras variáveis
     nome_inserido: .int 0
@@ -255,6 +266,62 @@ relatorio_regs:
 
         ret # Sai da função
 
+reajuste_salarial:
+    finit
+    fldz
+    fstl total_reajuste
+    fstpl total_salario
+
+    pushl $mens_reajuste
+    call printf
+    addl $4, %esp
+
+    pushl $pede_taxa_reajust
+    call printf
+    addl $4, %esp
+
+    pushl $p_reajuste
+    pushl $double_fmt
+    call scanf
+    addl $8, %esp
+
+    fld1
+    fldl p_reajuste
+    fadd %st(1), %st(0)
+
+    movl list_header, %edi # Move o endereço da cabeça da lista para %edi
+    loop_reajuste:
+        cmpl $NULL, %edi
+        je encerra_reajuste
+
+        fldl 257(%edi)
+        fldl total_salario
+        fadd %st(1), %st(0)
+        fstpl total_salario
+
+        fmul %st(1), %st(0)
+        fldl total_reajuste
+        fadd %st(1), %st(0)
+        fstpl total_reajuste
+
+        fstpl 257(%edi)        
+
+        movl 265(%edi), %edi
+        jmp loop_reajuste
+    
+    encerra_reajuste: 
+        fldl total_salario
+        fldl total_reajuste
+        fsub %st(1), %st(0)
+
+        subl $8, %esp
+        fstpl (%esp)
+        pushl $mostra_total_reajuste
+        call printf
+        addl $12, %esp
+
+        ret
+
 # Procedimento padrão para fechar o programa
 # Imprime uma mensagem de saída na tela e encerra com sucesso
 sair:
@@ -265,6 +332,7 @@ sair:
     call exit
 
 _start:
+    finit
     movl $NULL, list_header # Inicializa a lista com o endereço de NULL
     
     pushl $mens_abertura
@@ -293,6 +361,11 @@ _start:
         movl func_relatorio, %ebx 
         cmpl %eax, %ebx
         je call_relatorio
+
+        # Case 5
+        movl func_reajuste, %ebx
+        cmpl %eax, %ebx
+        je call_reajuste_salarial
 
         # Case 0
         movl func_sair, %ebx
@@ -331,6 +404,11 @@ call_relatorio:
     call relatorio_regs # Chama a função principal de relatório
 
     jmp menu_loop # Retorna ao menu
+
+call_reajuste_salarial:
+    call reajuste_salarial
+
+    jmp menu_loop
 
 # Função para chamar o procedimento mostra_registro
 # A função que usou jump para cá deve ter empilhado o endereço de retorno
