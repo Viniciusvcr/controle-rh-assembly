@@ -34,6 +34,8 @@
     mens_remocao_concluida: .asciz "\n\nRemoção do(a) funcionário(a) %s concluída com sucesso!\n\n"
     mens_lista_vazia:       .asciz "Não há funcionários cadastrados no sistema!\n\n"
     mens_gravacao_concluida: .asciz "Gravação concluída com sucesso!\n\n"
+    mens_leitura_concluida:  .asciz "Leitura concluída com sucesso!\n\n"
+    mens_arquivo_inexistente: .asciz "O arquivo '%s' não foi encontrado! Abortando operação...\n\n"
     str_menu:               .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t5 - Reajuste salarial\n\t6 - Carregar dados de arquivo\n\t7 - Gravar dados em arquivo\n\t0 - Sair do programa\n> "
 
     # Mensagens de pedidos ao usuário
@@ -75,7 +77,7 @@
     mostra_cargo:      .asciz "\tCARGO        : %s\n"
     mostra_salario:    .asciz "\tSALARIO      : R$ %.2lf\n"
 
-    mostra_total_reajuste: .asciz "O reajuste total foi de R$ %.2lf\n"
+    mostra_total_reajuste: .asciz "\nO reajuste total foi de R$ %.2lf\n\n"
 
     # Mensagens de conclusão (Inserção e consulta de registros)
     conclui_insercao: .asciz "\nNovo funcionário cadastrado com sucesso!\n\n"
@@ -111,6 +113,8 @@
 
     nome_arquivo: .space 50
     descritor_arq: .int 0
+
+    buffer_leitura: .space 265
 
     SYS_READ:  .int 3
     SYS_WRITE: .int 4
@@ -394,6 +398,112 @@ gravar_dados:
 
         ret
 
+limpa_lista:
+    cmpl $NULL, %edi
+    je encerra_limpa_lista
+
+    movl 265(%edi), %ebx
+    pushl %edi
+    call free
+    addl $4, %esp
+    movl %ebx, %edi
+
+    jmp limpa_lista
+
+    encerra_limpa_lista: 
+        movl $NULL, list_header
+        ret
+
+carregar_dados:
+    movl list_header, %edi
+    call limpa_lista
+
+    pushl $mens_leitura_arq
+    call printf
+    addl $4, %esp
+
+    pushl $pede_nome_arquivo_leitura
+    call printf
+    addl $4, %esp
+
+    pushl $nome_arquivo
+    pushl $str_fmt
+    call scanf
+    addl $8, %esp
+
+    movl SYS_OPEN, %eax
+    movl $nome_arquivo, %ebx
+    movl O_RDONLY, %ecx
+    movl S_IRUSR, %edx
+    int $0x80
+
+    movl %eax, descritor_arq
+
+    cmpl $0, descritor_arq
+    jl arquivo_inexistente
+
+    call aloca_reg
+    movl %eax, %ecx
+    movl SYS_READ, %eax
+    movl descritor_arq, %ebx
+    movl tam_reg, %edx
+    subl $4, %edx
+    int $0x80
+
+    cmpl $0, %eax
+    je encerra_carregar_dados
+    
+    movl $NULL, %ebx
+    movl %ebx, 265(%ecx)
+    movl %ecx, list_header
+    movl list_header, %edi
+
+    loop_carregar_dados:
+        call aloca_reg
+        movl %eax, %ecx
+        movl SYS_READ, %eax
+        movl descritor_arq, %ebx
+        movl tam_reg, %edx
+        int $0x80
+
+        cmpl $0, %eax
+        je encerra_carregar_dados
+
+        movl $NULL, %ebx
+        movl %ebx, 265(%ecx)
+        movl %ecx, 265(%edi)
+        movl %ecx, %edi
+
+        jmp loop_carregar_dados
+
+    arquivo_inexistente:
+        movl SYS_CLOSE, %eax
+        movl descritor_arq, %ebx
+        int $0x80
+
+        pushl $nome_arquivo
+        pushl $mens_arquivo_inexistente
+        call printf
+        addl $8, %esp
+        
+        ret
+        
+    encerra_carregar_dados: 
+        pushl %ecx
+        call free
+        addl $4, %esp
+
+        movl SYS_CLOSE, %eax
+        movl descritor_arq, %ebx
+        int $0x80
+
+        pushl $mens_leitura_concluida
+        call printf
+        addl $4, %esp
+
+        ret
+
+
 # Procedimento padrão para fechar o programa
 # Imprime uma mensagem de saída na tela e encerra com sucesso
 sair:
@@ -498,6 +608,8 @@ call_gravar_dados:
     jmp menu_loop
 
 call_carregar_dados:
+    call carregar_dados
+
     jmp menu_loop
 
 # Função para chamar o procedimento mostra_registro
