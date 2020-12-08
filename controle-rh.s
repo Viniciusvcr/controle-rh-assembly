@@ -27,31 +27,36 @@
     mens_consult:           .asciz "Consulta de funcionário:\n\n"
     mens_relat:             .asciz "Relatório de funcionários:\n\n"
     mens_reajuste:          .asciz "Reajuste salarial:\n\n"
+    mens_leitura_arq:       .asciz "Leitura de dados:\n\n"
+    mens_gravar_arq:        .asciz "Gravação de dados:\n\n"
     mens_invalido:          .asciz "Opção inválida!\n\n"
     mens_nao_encontrado:    .asciz "\n\nNome não encontrado na lista!\n\n"
     mens_remocao_concluida: .asciz "\n\nRemoção do(a) funcionário(a) %s concluída com sucesso!\n\n"
     mens_lista_vazia:       .asciz "Não há funcionários cadastrados no sistema!\n\n"
-    str_menu:               .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t5 - Reajuste salarial\n\t0 - Sair do programa\n> "
+    mens_gravacao_concluida: .asciz "Gravação concluída com sucesso!\n\n"
+    str_menu:               .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t5 - Reajuste salarial\n\t6 - Carregar dados de arquivo\n\t7 - Gravar dados em arquivo\n\t0 - Sair do programa\n> "
 
     # Mensagens de pedidos ao usuário
-    pede_nome:         .asciz "Insira o NOME do funcionário: "
-    pede_rua:          .asciz "Insira a RUA do funcionário: "
-    pede_numero:       .asciz "Insira o NÚMERO da casa do funcionário: "
-    pede_bairro:       .asciz "Insira o BAIRRO do funcionário: "
-    pede_cep:          .asciz "Insira o CEP do funcionário: "
-    pede_cidade:       .asciz "Insira a CIDADE do funcionário: "
-    pede_telefone:     .asciz "Insira o TELEFONE do funcionário: "
-    pede_email:        .asciz "Insira o EMAIL do funcionário: "
-    pede_data_nasc:    .asciz "Insira a DATA DE NASCIMENTO do funcionário: "
-    pede_genero:       .asciz "Insira o gênero do funcionário (<M>asculino, <F>eminino): "
-    pede_cpf:          .asciz "Insira o CPF do funcionário: "
-    pede_rg:           .asciz "Insira o RG do funcionário: "
-    pede_data_contr:   .asciz "Insira a DATA DE CONTRATO do funcionário: "
-    pede_cargo:        .asciz "Insira o CARGO do funcionário: "
-    pede_salario:      .asciz "Insira o SALÁRIO do funcionário: "
-    pede_nome_remover: .asciz "Insira o NOME do funcionário que deseja REMOVER: "
-    pede_nome_consult: .asciz "Insira o NOME do funcionário que deseja CONSULTAR: "
-    pede_taxa_reajust: .asciz "Insira o TAXA de reajuste (entre 0 e 1): "
+    pede_nome:                  .asciz "Insira o NOME do funcionário: "
+    pede_rua:                   .asciz "Insira a RUA do funcionário: "
+    pede_numero:                .asciz "Insira o NÚMERO da casa do funcionário: "
+    pede_bairro:                .asciz "Insira o BAIRRO do funcionário: "
+    pede_cep:                   .asciz "Insira o CEP do funcionário: "
+    pede_cidade:                .asciz "Insira a CIDADE do funcionário: "
+    pede_telefone:              .asciz "Insira o TELEFONE do funcionário: "
+    pede_email:                 .asciz "Insira o EMAIL do funcionário: "
+    pede_data_nasc:             .asciz "Insira a DATA DE NASCIMENTO do funcionário: "
+    pede_genero:                .asciz "Insira o gênero do funcionário (<M>asculino, <F>eminino): "
+    pede_cpf:                   .asciz "Insira o CPF do funcionário: "
+    pede_rg:                    .asciz "Insira o RG do funcionário: "
+    pede_data_contr:            .asciz "Insira a DATA DE CONTRATO do funcionário: "
+    pede_cargo:                 .asciz "Insira o CARGO do funcionário: "
+    pede_salario:               .asciz "Insira o SALÁRIO do funcionário: "
+    pede_nome_remover:          .asciz "Insira o NOME do funcionário que deseja REMOVER: "
+    pede_nome_consult:          .asciz "Insira o NOME do funcionário que deseja CONSULTAR: "
+    pede_taxa_reajust:          .asciz "Insira o TAXA de reajuste (entre 0 e 1): "
+    pede_nome_arquivo_leitura:  .asciz "Insira o nome do arquivo para LEITURA de dados: "
+    pede_nome_arquivo_gravacao: .asciz "Insira o nome do arquivo para GRAVAÇÃO de dados: "
 
     # Mensagens para escrita do registro na tela
     mostra_nome:       .asciz "FUNCIONÁRIO(A) %s: \n"
@@ -82,12 +87,15 @@
     func_consultar: .int 3
     func_relatorio: .int 4
     func_reajuste:  .int 5
+    func_carregar:  .int 6
+    func_gravar:    .int 7
     func_sair:      .int 0
 
     # Formatadores para scanf e printf
     int_fmt:      .asciz "%d"
     double_fmt:   .asciz "%lf"
     char_fmt:     .asciz "%c"
+    str_fmt:      .asciz "%s"
 
     # Constante NULL
     NULL: .int 0
@@ -98,9 +106,25 @@
 
     p_reajuste: .double 0
     double_one: .double 1
-
     total_salario:  .double 0
     total_reajuste: .double 0
+
+    nome_arquivo: .space 50
+    descritor_arq: .int 0
+
+    SYS_READ:  .int 3
+    SYS_WRITE: .int 4
+    SYS_OPEN:  .int 5
+    SYS_CLOSE: .int 6
+
+    O_RDONLY: .int 0x0000 # somente leitura
+    O_WRONLY: .int 0x0001 # somente escrita
+    O_RDWR:   .int 0x0002 # leitura e escrita
+    O_CREAT:  .int 0x0040 # cria o arquivo na abertura, caso ele não exista
+
+    S_IRUSR: .int 0x0100 # user has read permission
+    S_IWUSR: .int 0x0080 # user has write permission
+    S_IRWXU: .int 0x01C0# user (file owner) has read, write and execute permission
 
     # Outras variáveis
     nome_inserido: .int 0
@@ -322,6 +346,54 @@ reajuste_salarial:
 
         ret
 
+gravar_dados:
+    pushl $mens_gravar_arq
+    call printf
+    addl $4, %esp
+
+    pushl $pede_nome_arquivo_gravacao
+    call printf
+    addl $4, %esp
+
+    pushl $nome_arquivo
+    pushl $str_fmt
+    call scanf
+    addl $8, %esp
+
+    movl SYS_OPEN, %eax
+    movl $nome_arquivo, %ebx
+    movl O_WRONLY, %ecx
+    orl O_CREAT, %ecx
+    movl S_IRWXU, %edx
+    int $0x80
+
+    movl %eax, descritor_arq
+
+    movl list_header, %edi # Move o endereço da cabeça da lista para %edi
+    movl descritor_arq, %ebx
+    movl tam_reg, %edx
+    subl $4, %edx
+    loop_gravacao:
+        cmpl $NULL, %edi
+        je encerra_gravacao
+
+        movl SYS_WRITE, %eax
+        movl %edi, %ecx
+        int $0x80
+        
+        movl 265(%edi), %edi
+        jmp loop_gravacao
+
+    encerra_gravacao:
+        movl SYS_CLOSE, %eax
+        movl descritor_arq, %ebx
+        int $0x80
+        pushl $mens_gravacao_concluida
+        call printf
+        addl $4, %esp
+
+        ret
+
 # Procedimento padrão para fechar o programa
 # Imprime uma mensagem de saída na tela e encerra com sucesso
 sair:
@@ -367,6 +439,16 @@ _start:
         cmpl %eax, %ebx
         je call_reajuste_salarial
 
+        # Case 6
+        movl func_carregar, %ebx
+        cmpl %eax, %ebx
+        je call_carregar_dados
+
+        # Case 7
+        movl func_gravar, %ebx
+        cmpl %eax, %ebx
+        je call_gravar_dados
+
         # Case 0
         movl func_sair, %ebx
         cmpl %eax, %ebx
@@ -408,6 +490,14 @@ call_relatorio:
 call_reajuste_salarial:
     call reajuste_salarial
 
+    jmp menu_loop
+
+call_gravar_dados:
+    call gravar_dados
+
+    jmp menu_loop
+
+call_carregar_dados:
     jmp menu_loop
 
 # Função para chamar o procedimento mostra_registro
