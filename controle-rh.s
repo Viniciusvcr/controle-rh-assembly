@@ -20,23 +20,23 @@
 
 .section .data
     # Mensagens do sistema
-    mens_abertura:          .asciz "Bem vindo ao controle de RH\n\n"
-    mens_sair:              .asciz "Saindo do programa... Obrigado por utilizar!\n"
-    mens_inserir:           .asciz "Inserir funcionário:\n\n"
-    mens_remover:           .asciz "Remover funcionário:\n\n"
-    mens_consult:           .asciz "Consulta de funcionário:\n\n"
-    mens_relat:             .asciz "Relatório de funcionários:\n\n"
-    mens_reajuste:          .asciz "Reajuste salarial:\n\n"
-    mens_leitura_arq:       .asciz "Leitura de dados:\n\n"
-    mens_gravar_arq:        .asciz "Gravação de dados:\n\n"
-    mens_invalido:          .asciz "Opção inválida!\n\n"
-    mens_nao_encontrado:    .asciz "\n\nNome não encontrado na lista!\n\n"
-    mens_remocao_concluida: .asciz "\n\nRemoção do(a) funcionário(a) %s concluída com sucesso!\n\n"
-    mens_lista_vazia:       .asciz "Não há funcionários cadastrados no sistema!\n\n"
-    mens_gravacao_concluida: .asciz "Gravação concluída com sucesso!\n\n"
-    mens_leitura_concluida:  .asciz "Leitura concluída com sucesso!\n\n"
+    mens_abertura:            .asciz "Bem vindo ao controle de RH\n\n"
+    mens_sair:                .asciz "Saindo do programa... Obrigado por utilizar!\n"
+    mens_inserir:             .asciz "Inserir funcionário:\n\n"
+    mens_remover:             .asciz "Remover funcionário:\n\n"
+    mens_consult:             .asciz "Consulta de funcionário:\n\n"
+    mens_relat:               .asciz "Relatório de funcionários:\n\n"
+    mens_reajuste:            .asciz "Reajuste salarial:\n\n"
+    mens_leitura_arq:         .asciz "Leitura de dados:\n\n"
+    mens_gravar_arq:          .asciz "Gravação de dados:\n\n"
+    mens_invalido:            .asciz "Opção inválida!\n\n"
+    mens_nao_encontrado:      .asciz "\n\nNome não encontrado na lista!\n\n"
+    mens_remocao_concluida:   .asciz "\n\nRemoção do(a) funcionário(a) %s concluída com sucesso!\n\n"
+    mens_lista_vazia:         .asciz "Não há funcionários cadastrados no sistema!\n\n"
+    mens_gravacao_concluida:  .asciz "Gravação concluída com sucesso!\n\n"
+    mens_leitura_concluida:   .asciz "Leitura concluída com sucesso!\n\n"
     mens_arquivo_inexistente: .asciz "O arquivo '%s' não foi encontrado! Abortando operação...\n\n"
-    str_menu:               .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t5 - Reajuste salarial\n\t6 - Carregar dados de arquivo\n\t7 - Gravar dados em arquivo\n\t0 - Sair do programa\n> "
+    str_menu:                 .asciz "Escolha uma opção do programa:\n\t1 - Inserir funcionário\n\t2 - Remover funcionário\n\t3 - Consultar funcionário\n\t4 - Relatório de registros\n\t5 - Reajuste salarial\n\t6 - Carregar dados de arquivo\n\t7 - Gravar dados em arquivo\n\t0 - Sair do programa\n> "
 
     # Mensagens de pedidos ao usuário
     pede_nome:                  .asciz "Insira o NOME do funcionário: "
@@ -106,28 +106,26 @@
     list_header: .int 0
     tam_reg:     .int 269
 
+    # Variáveis para o reajuste
     p_reajuste: .double 0
-    double_one: .double 1
     total_salario:  .double 0
     total_reajuste: .double 0
 
+    # Variáveis para abertura de arquivos
     nome_arquivo: .space 50
     descritor_arq: .int 0
 
-    buffer_leitura: .space 265
-
+    # Constantes de interrupção
     SYS_READ:  .int 3
     SYS_WRITE: .int 4
     SYS_OPEN:  .int 5
     SYS_CLOSE: .int 6
 
+    # Constantes para abertura de arquivos
     O_RDONLY: .int 0x0000 # somente leitura
     O_WRONLY: .int 0x0001 # somente escrita
-    O_RDWR:   .int 0x0002 # leitura e escrita
     O_CREAT:  .int 0x0040 # cria o arquivo na abertura, caso ele não exista
-
     S_IRUSR: .int 0x0100 # user has read permission
-    S_IWUSR: .int 0x0080 # user has write permission
     S_IRWXU: .int 0x01C0# user (file owner) has read, write and execute permission
 
     # Outras variáveis
@@ -477,7 +475,8 @@ carregar_dados:
         movl %eax, %ecx # Define o local de leitura da interrupção como o novo registro
         movl SYS_READ, %eax # Define a interrupção como READ
         movl descritor_arq, %ebx # Define o local de leitura como o arquivo
-        movl tam_reg, %edx # Define o tamanho de leitura # FIXME tamanho deve ser tem_reg - 4
+        movl tam_reg, %edx # Define o tamanho de leitura
+        subl $4, %edx # Remove o tamanho de registro.prox do tamanho da leitura
         int $0x80 # Chamada da interrupção
 
         # A quantidade de bytes com sucesso está em %eax
@@ -494,11 +493,6 @@ carregar_dados:
 
     # Imprime uma mensagem caso o arquivo seja inexistente e sai da função
     arquivo_inexistente:
-        # FIXME o arquivo deve ser fechado se não existe?
-        movl SYS_CLOSE, %eax
-        movl descritor_arq, %ebx
-        int $0x80
-
         pushl $nome_arquivo
         pushl $mens_arquivo_inexistente
         call printf
