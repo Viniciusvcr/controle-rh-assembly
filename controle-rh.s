@@ -125,6 +125,7 @@
     O_RDONLY: .int 0x0000 # somente leitura
     O_WRONLY: .int 0x0001 # somente escrita
     O_CREAT:  .int 0x0040 # cria o arquivo na abertura, caso ele não exista
+    O_TRUNC:  .int 0x0200 # reseta o arquivo aberto, deixando com tamanho 0 (zero)
     S_IRUSR: .int 0x0100 # user has read permission
     S_IRWXU: .int 0x01C0# user (file owner) has read, write and execute permission
 
@@ -368,6 +369,7 @@ gravar_dados:
     movl $nome_arquivo, %ebx # Define o nome do arquivo que será aberto
     movl O_WRONLY, %ecx # Abre apenas para escrita
     orl O_CREAT, %ecx # Cria o arquivo, caso não exista
+    orl O_TRUNC, %ecx # Reseta o arquivo
     movl S_IRWXU, %edx # Usuário tem permissão para leitura e escrita do arquivo
     int $0x80 # Chamada da interrupção
 
