@@ -295,109 +295,116 @@ relatorio_regs:
         ret # Sai da função
 
 reajuste_salarial:
-    finit
-    fldz
-    fstl total_reajuste
-    fstpl total_salario
+    finit # Inicia a PFU
+    fldz # Empilha 0.0 na PFU
+    fstl total_reajuste # Move o zero empilhado para total_reajuste
+    fstpl total_salario # Move o zero empilhado para total_salario e o remove da pilha
 
     pushl $mens_reajuste
-    call printf
+    call printf # Imprime a mensagem de abertura da função
     addl $4, %esp
 
     pushl $pede_taxa_reajust
-    call printf
+    call printf # Imprime a mensagem de pedido da taxa de reajuste
     addl $4, %esp
 
     pushl $p_reajuste
     pushl $double_fmt
-    call scanf
+    call scanf # Lê a taxa de reajuste na variável p_reajuste
     addl $8, %esp
 
-    fld1
-    fldl p_reajuste
-    fadd %st(1), %st(0)
+    fld1 # Empilha 1.0 na PFU
+    fldl p_reajuste # Empilha p_reajuste na PFU
+    fadd %st(1), %st(0) # p_reajuste = 1 + p_reajuste (para fazer o aumento de salário)
 
     movl list_header, %edi # Move o endereço da cabeça da lista para %edi
     loop_reajuste:
-        cmpl $NULL, %edi
-        je encerra_reajuste
+        cmpl $NULL, %edi 
+        je encerra_reajuste # Encerra a função caso o atual seja NULL
 
-        fldl 257(%edi)
-        fldl total_salario
-        fadd %st(1), %st(0)
-        fstpl total_salario
+        fldl 257(%edi) # Empilha registro.salario na PFU
+        fldl total_salario # Empilha total_salario na PFU
+        fadd %st(1), %st(0) # total_salario + registro.salario 
+        fstpl total_salario # Guarda o valor calculado na variável total_salario, removendo-a da pilha
 
-        fmul %st(1), %st(0)
-        fldl total_reajuste
-        fadd %st(1), %st(0)
-        fstpl total_reajuste
+        fmul %st(1), %st(0) # registro.salario * (1 + p_reajuste)
+        fldl total_reajuste # Empilha a variável total_reajuste na PFU
+        fadd %st(1), %st(0) # (registro.salario * (1 + p_reajuste)) + total_reajuste
+        fstpl total_reajuste # Guarda o valor calculado acima na variável total_reajuste, removendo-a da pilha
 
-        fstpl 257(%edi)        
+        fstpl 257(%edi) # Salva o novo valor do salário no registro
 
-        movl 265(%edi), %edi
-        jmp loop_reajuste
+        movl 265(%edi), %edi # Avança ao próximo registro
+        jmp loop_reajuste # Volta ao loop
     
     encerra_reajuste: 
-        fldl total_salario
-        fldl total_reajuste
-        fsub %st(1), %st(0)
+        fldl total_salario # Empilha total_salario na PFU
+        fldl total_reajuste # Empilha total_reajuste na PFU
+        fsub %st(1), %st(0) # total_salario - total_reajuste
 
-        subl $8, %esp
-        fstpl (%esp)
-        pushl $mostra_total_reajuste
-        call printf
+        subl $8, %esp # Abre espaço na pilha do sistema
+        fstpl (%esp) # Move (total_salario - total_reajuste) para a pilha do sistema
+        pushl $mostra_total_reajuste 
+        call printf # Imprime o valor total de reajuste
         addl $12, %esp
 
         ret
 
 gravar_dados:
     pushl $mens_gravar_arq
-    call printf
+    call printf # Imprime a mensagem de abertura da função
     addl $4, %esp
 
     pushl $pede_nome_arquivo_gravacao
-    call printf
+    call printf # Imprime a mensagem de pedido do nome do arquivo
     addl $4, %esp
 
     pushl $nome_arquivo
     pushl $str_fmt
-    call scanf
+    call scanf # Lê o nome do arquivo na variável nome_arquivo
     addl $8, %esp
 
-    movl SYS_OPEN, %eax
-    movl $nome_arquivo, %ebx
-    movl O_WRONLY, %ecx
-    orl O_CREAT, %ecx
-    movl S_IRWXU, %edx
-    int $0x80
+    # Preparação para abrir um arquivo por interrupção
+    # O descritor de arquivo estará em %eax após a chamada
+    movl SYS_OPEN, %eax # Define a interrupção como OPEN
+    movl $nome_arquivo, %ebx # Define o nome do arquivo que será aberto
+    movl O_WRONLY, %ecx # Abre apenas para escrita
+    orl O_CREAT, %ecx # Cria o arquivo, caso não exista
+    movl S_IRWXU, %edx # Usuário tem permissão para leitura e escrita do arquivo
+    int $0x80 # Chamada da interrupção
 
-    movl %eax, descritor_arq
+    movl %eax, descritor_arq # Move o descritor do arquivo aberto para descritor_arq
 
     movl list_header, %edi # Move o endereço da cabeça da lista para %edi
-    movl descritor_arq, %ebx
-    movl tam_reg, %edx
-    subl $4, %edx
+    movl descritor_arq, %ebx # Move o descritor do arquivo de leitura para %ebx
+    movl tam_reg, %edx # Move o tamanho de gravação para %edx
+    subl $4, %edx # Remove os bytes de registro.prox (não vão para o arquivo)
     loop_gravacao:
         cmpl $NULL, %edi
-        je encerra_gravacao
+        je encerra_gravacao # Caso o registro atual seja NULL, encerra a gravação
 
-        movl SYS_WRITE, %eax
-        movl %edi, %ecx
-        int $0x80
+        movl SYS_WRITE, %eax # Define a interrupção como WRITE
+        movl %edi, %ecx # Define o registro de gravação
+        int $0x80 # Chamada da interrupção
+
+        # Registro é escrito no arquivo
         
-        movl 265(%edi), %edi
-        jmp loop_gravacao
+        movl 265(%edi), %edi # Avança ao próximo registro
+        jmp loop_gravacao # Volta ao loop
 
     encerra_gravacao:
-        movl SYS_CLOSE, %eax
-        movl descritor_arq, %ebx
-        int $0x80
+        movl SYS_CLOSE, %eax # Define a interrupção como CLOSE
+        movl descritor_arq, %ebx # Define o descritor a ser fechado
+        int $0x80 # Chamada da interrupção
         pushl $mens_gravacao_concluida
-        call printf
+        call printf # Imprime a mensagem de conclusão da função
         addl $4, %esp
 
         ret
 
+# Função para desalocar todos os registros da lista no caso da leitura de um arquivo
+# Itera pela lista, chamando a função free para cada registro
+# Ao final, a lista fica com NULL
 limpa_lista:
     cmpl $NULL, %edi
     je encerra_limpa_lista
@@ -415,68 +422,79 @@ limpa_lista:
         ret
 
 carregar_dados:
-    movl list_header, %edi
-    call limpa_lista
+    movl list_header, %edi # Move o conteúdo da lista para %edi (parâmetro para limpa lista)
+    call limpa_lista # Chama a função limpa_lista
 
     pushl $mens_leitura_arq
-    call printf
+    call printf # Imprime a mensagem de abertura da função
     addl $4, %esp
 
     pushl $pede_nome_arquivo_leitura
-    call printf
+    call printf # Imprime a mensagem de pedido do nome do arquivo
     addl $4, %esp
 
     pushl $nome_arquivo
     pushl $str_fmt
-    call scanf
+    call scanf # Lê o nome do arquivo na variável nome_arquivo
     addl $8, %esp
 
-    movl SYS_OPEN, %eax
-    movl $nome_arquivo, %ebx
-    movl O_RDONLY, %ecx
-    movl S_IRUSR, %edx
-    int $0x80
+    # Preparação para abrir um arquivo por interrupção
+    # O descritor de arquivo estará em %eax após a chamada
+    movl SYS_OPEN, %eax # Define a interrupção como OPEN
+    movl $nome_arquivo, %ebx # Define o nome do arquivo que será aberto
+    movl O_RDONLY, %ecx # Define a abertura como READ-ONLY
+    movl S_IRUSR, %edx # Usuário tem permissão para leitura do arquivo
+    int $0x80 # Chamada da interrupção
 
-    movl %eax, descritor_arq
+    movl %eax, descritor_arq # Move o descritor para descritor_arq
 
+    # Verifica se o arquivo foi aberto corretamente (ele pode não existir)
+    # Se o retorno da interrupção for menor que 0, OPEN falhou
     cmpl $0, descritor_arq
     jl arquivo_inexistente
 
-    call aloca_reg
-    movl %eax, %ecx
-    movl SYS_READ, %eax
-    movl descritor_arq, %ebx
-    movl tam_reg, %edx
-    subl $4, %edx
-    int $0x80
+    # Leitura do primeiro registro (comportamento diferente dos demais)
+    call aloca_reg # Aloca um registro
+    movl %eax, %ecx # Define o local de leitura da interrupção como o novo registro
+    movl SYS_READ, %eax # Define a interrupção como READ
+    movl descritor_arq, %ebx # Define o local de leitura como o arquivo
+    movl tam_reg, %edx # Define o tamanho de leitura
+    subl $4, %edx # Remove o tamanho de registro.prox do tamanho da leitura
+    int $0x80 # Chamada da interrupção
 
+    # A quantidade de bytes com sucesso está em %eax
+    # Caso este número seja 0, o final do arquivo foi alcançado
     cmpl $0, %eax
-    je encerra_carregar_dados
+    je encerra_carregar_dados # Encerra a execução nesse contexto
     
-    movl $NULL, %ebx
-    movl %ebx, 265(%ecx)
-    movl %ecx, list_header
-    movl list_header, %edi
+    movl $NULL, %ebx # Move o endereço de NULL para %ebx
+    movl %ebx, 265(%ecx) # Move &NULL para registro.prox
+    movl %ecx, list_header # Move o registro lido para a cabeça da lista
 
+    movl list_header, %edi # Move o conteúdo da lista para %edi (para o loop de leitura)
     loop_carregar_dados:
-        call aloca_reg
-        movl %eax, %ecx
-        movl SYS_READ, %eax
-        movl descritor_arq, %ebx
-        movl tam_reg, %edx
-        int $0x80
+        call aloca_reg # Aloca um registro
+        movl %eax, %ecx # Define o local de leitura da interrupção como o novo registro
+        movl SYS_READ, %eax # Define a interrupção como READ
+        movl descritor_arq, %ebx # Define o local de leitura como o arquivo
+        movl tam_reg, %edx # Define o tamanho de leitura # FIXME tamanho deve ser tem_reg - 4
+        int $0x80 # Chamada da interrupção
 
+        # A quantidade de bytes com sucesso está em %eax
+        # Caso este número seja 0, o final do arquivo foi alcançado
         cmpl $0, %eax
-        je encerra_carregar_dados
+        je encerra_carregar_dados # Encerra a execução nesse contexto
 
-        movl $NULL, %ebx
-        movl %ebx, 265(%ecx)
-        movl %ecx, 265(%edi)
-        movl %ecx, %edi
+        movl $NULL, %ebx # Move o endereço de NULL para %ebx
+        movl %ebx, 265(%ecx) # Move &NULL para registro.prox
+        movl %ecx, 265(%edi) # Move o registro lido para anterior.prox
+        movl %ecx, %edi # anterior = atual
 
-        jmp loop_carregar_dados
+        jmp loop_carregar_dados # Reinicia o loop
 
+    # Imprime uma mensagem caso o arquivo seja inexistente e sai da função
     arquivo_inexistente:
+        # FIXME o arquivo deve ser fechado se não existe?
         movl SYS_CLOSE, %eax
         movl descritor_arq, %ebx
         int $0x80
@@ -487,18 +505,20 @@ carregar_dados:
         addl $8, %esp
         
         ret
-        
+    
+    # Procedimento de encerramento da função
+    # Um registro vazio está em %ecx sempre que a função for acabar
     encerra_carregar_dados: 
-        pushl %ecx
-        call free
+        pushl %ecx # Empilha o endereço do registro vazio
+        call free # Desaloca o registro vazio
         addl $4, %esp
 
-        movl SYS_CLOSE, %eax
-        movl descritor_arq, %ebx
-        int $0x80
+        movl SYS_CLOSE, %eax # Define a interrupção como CLOSE
+        movl descritor_arq, %ebx # Define o arquivo a ser fechado
+        int $0x80 # Chama a interrupção
 
         pushl $mens_leitura_concluida
-        call printf
+        call printf # Imprime uma mensagem de leitura concluída
         addl $4, %esp
 
         ret
