@@ -55,8 +55,11 @@ $ ./controle-rh.out
 O primeiro contato com o sistema é seu menu. Escolha entre
 
 1. **Inserir funcionário**, para inserir um registro;
-1. **Remover funcionário**, para remover um registro;
-1. **Consultar funcionário**, para consultar um registro no banco de dados;
-1. **Relatório de registros**, para visualizar todos os registros no banco de dados.
+2. **Remover funcionário**, para remover um registro;
+3. **Consultar funcionário**, para consultar um registro no banco de dados;
+4. **Relatório de registros**, para visualizar todos os registros no banco de dados;
+5. **Reajuste salarial**, para reajustar o salário de todos os registros com base em uma porcentagem;
+6. **Leitura de dados**, para carregar uma lista previamente gerada por este programa;
+7. **Gravação de dados**, para salvar os dados dos registros atuais.
 
 A última opção (opção 0), finaliza a execução do programa.
